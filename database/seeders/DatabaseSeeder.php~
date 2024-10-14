@@ -19,6 +19,6 @@ class DatabaseSeeder extends Seeder
 
         Ticket::factory(100)
             ->recycle($users)
-            ->create();
+            ->create()
     }
 }
