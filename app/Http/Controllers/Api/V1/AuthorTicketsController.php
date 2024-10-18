@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Filters\V1\TicketFilter;
 use App\Http\Requests\Api\V1\ReplaceTicketRequest;
 use App\Http\Requests\Api\V1\StoreTicketRequest;
+use App\Http\Requests\Api\V1\UpdateTicketRequest;
 use App\Http\Resources\V1\TicketResource;
 use App\Models\Ticket;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -19,15 +20,9 @@ class AuthorTicketsController extends ApiController
     /**
      * Store a newly created resource in storage.
      */
-    public function store($authors_id, StoreTicketRequest $request)
+    public function store($authors_id, StoreTicketRequest $request): TicketResource
     {
-        $model = [
-            'title' => $request->input('data.attributes.title'),
-            'description' => $request->input('data.attributes.description'),
-            'status' => $request->input('data.attributes.status'),
-            'user_id' => $authors_id
-        ];
-        return new TicketResource(Ticket::create($model));
+        return new TicketResource(Ticket::create($request->mappedAttributes()));
     }
 
     /**
@@ -39,13 +34,7 @@ class AuthorTicketsController extends ApiController
             $ticket = Ticket::findOrFail($ticket_id);
             if ($ticket->user_id == $author_id) {
 
-                $model = [
-                    'title' => $request->input('data.attributes.title'),
-                    'description' => $request->input('data.attributes.description'),
-                    'status' => $request->input('data.attributes.status'),
-                    'user_id' => $request->input('data.relationships.author.data.id')
-                ];
-                $ticket->update($model);
+                $ticket->update($request->mappedAttributes());
 
                 return new TicketResource($ticket);
 
@@ -54,7 +43,26 @@ class AuthorTicketsController extends ApiController
         } catch (ModelNotFoundException $exception) {
             return $this->error('Ticket not found', 404);
         }
+    }
 
+    /**
+     * Replace the specified resource in storage.
+     */
+    public function update(UpdateTicketRequest $request, $author_id, $ticket_id)
+    {
+        try {
+            $ticket = Ticket::findOrFail($ticket_id);
+            if ($ticket->user_id == $author_id) {
+
+                $ticket->update($request->mappedAttributes());
+
+                return new TicketResource($ticket);
+
+                // TODO: Ticket doesn't belong to user
+            }
+        } catch (ModelNotFoundException $exception) {
+            return $this->error('Ticket not found', 404);
+        }
     }
 
     public function destroy($author_id, $ticket_id)
