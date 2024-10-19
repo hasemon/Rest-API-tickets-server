@@ -8,7 +8,6 @@ use App\Http\Requests\Api\V1\StoreTicketRequest;
 use App\Http\Requests\Api\V1\UpdateTicketRequest;
 use App\Http\Resources\V1\TicketResource;
 use App\Models\Ticket;
-use App\Models\User;
 use App\Policies\V1\TicketPolicy;
 use App\Traits\ApiResponses;
 use Illuminate\Auth\AuthenticationException;
@@ -18,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 class TicketController extends ApiController
 {
     use ApiResponses;
+
     protected $policyClass = TicketPolicy::class;
 
     /**
@@ -34,14 +34,12 @@ class TicketController extends ApiController
     public function store(StoreTicketRequest $request)
     {
         try {
-            $user = User::findOrFail($request->input('data.relationships.author.data.id'));
-        } catch (ModelNotFoundException $exception) {
-            return $this->ok('User not found', [
-                'error' => 'Provided user id not found'
-            ]);
+            $this->isAble('store', Ticket::class);
+            return new TicketResource($request->mappedAttributes());
+        } catch (AuthenticationException $exception) {
+            return $this->error('You are not Authorized', 401);
         }
 
-        return new TicketResource($request->mappedAttributes());
     }
 
     /**
@@ -76,10 +74,11 @@ class TicketController extends ApiController
 
         } catch (ModelNotFoundException $exception) {
             return $this->error('Ticket not found', 404);
-        } catch (AuthenticationException $exception){
+        } catch (AuthenticationException $exception) {
             return $this->error('You are not authorized to update the resource', 401);
         }
     }
+
     /**
      * Replace the specified resource in storage.
      */
@@ -87,7 +86,7 @@ class TicketController extends ApiController
     {
         try {
             $ticket = Ticket::findOrFail($ticket_id);
-
+            $this->isAble('replace', $ticket);
             $ticket->update($request->mappedAttributes());
 
             return new TicketResource($ticket);
@@ -105,6 +104,7 @@ class TicketController extends ApiController
     {
         try {
             $ticket = Ticket::findOrFail($ticket_id);
+            $this->isAble('delete', $ticket);
             $ticket->delete();
             return $this->ok('Ticket successfully deleted');
         } catch (ModelNotFoundException $exception) {
