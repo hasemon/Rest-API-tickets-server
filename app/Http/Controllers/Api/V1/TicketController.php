@@ -63,7 +63,6 @@ class TicketController extends ApiController
      */
     public function update(UpdateTicketRequest $request, $ticket_id): JsonResponse|TicketResource
     {
-        //
         try {
             $ticket = Ticket::findOrFail($ticket_id);
             //policy
